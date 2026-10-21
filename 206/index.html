@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080d19">
+  <title>Breakout // Arcade Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #080d19;
+      color: #f0f4ff;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --muted: #8995b0;
+      --line: rgba(165, 185, 231, .14);
+      --cyan: #62e7f5;
+      --violet: #a18bff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 28px 18px 36px;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(46, 67, 130, .24), transparent 55%),
+        #080d19;
+    }
+
+    button { font: inherit; }
+
+    .shell { width: min(960px, 100%); margin: 0 auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 2px 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--cyan);
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 5vw, 2.15rem);
+      font-weight: 850;
+      letter-spacing: -.055em;
+    }
+
+    .header-note {
+      color: var(--muted);
+      font-size: .82rem;
+      text-align: right;
+    }
+
+    .cabinet {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(21, 30, 53, .96), rgba(11, 17, 31, .98));
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .36), 0 0 60px rgba(84, 103, 190, .08);
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 17px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stat { display: grid; gap: 3px; }
+    .stat:nth-child(2) { text-align: center; }
+    .stat:nth-child(3) { text-align: right; }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: .65rem;
+      font-weight: 750;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-variant-numeric: tabular-nums;
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+
+    .stage {
+      position: relative;
+      background:
+        radial-gradient(ellipse at 50% 65%, rgba(48, 67, 130, .12), transparent 55%),
+        #0a1020;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: none;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .button-group { display: flex; flex-wrap: wrap; gap: 9px; }
+
+    .button {
+      min-height: 40px;
+      padding: 0 15px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .045);
+      color: #edf1ff;
+      cursor: pointer;
+      font-size: .82rem;
+      font-weight: 750;
+      transition: border-color .15s ease, background .15s ease, transform .15s ease;
+    }
+
+    .button:hover { border-color: rgba(98, 231, 245, .55); background: rgba(98, 231, 245, .09); }
+    .button:active { transform: translateY(1px); }
+    .button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+    .button.primary {
+      border-color: transparent;
+      background: linear-gradient(110deg, #45d6e8, #8c79f6);
+      color: #09101f;
+    }
+
+    .button.primary:hover { background: linear-gradient(110deg, #71eafa, #aa9bff); }
+
+    .button.active {
+      border-color: rgba(98, 231, 245, .55);
+      background: rgba(98, 231, 245, .12);
+      color: var(--cyan);
+    }
+
+    .button:disabled { cursor: not-allowed; opacity: .45; }
+
+    .ai-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+
+    .pulse {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--violet);
+      box-shadow: 0 0 12px var(--violet);
+    }
+
+    .instructions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px 22px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: .75rem;
+    }
+
+    .instructions strong { color: #d7def0; font-weight: 700; }
+    .key {
+      display: inline-block;
+      min-width: 22px;
+      padding: 2px 5px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      color: #e2e9fa;
+      font-size: .68rem;
+      text-align: center;
+    }
+
+    .touch-controls { display: none; gap: 10px; margin-top: 14px; }
+    .touch-controls .button { flex: 1; min-height: 46px; font-size: 1rem; }
+
+    @media (max-width: 600px) {
+      body { padding: 19px 12px 26px; }
+      .header-note { max-width: 125px; font-size: .72rem; }
+      .hud { padding: 14px; }
+      .toolbar { align-items: flex-start; padding: 13px; }
+      .ai-note { width: 100%; }
+      .touch-controls { display: flex; }
+      .instructions { gap: 8px 14px; font-size: .7rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">Arcade lab / 001</p>
+        <h1>BREAKOUT<span style="color:var(--cyan)">.</span></h1>
+      </div>
+      <div class="header-note">Classic bricks.<br>One learning AI.</div>
+    </header>
+
+    <section class="cabinet" aria-label="Breakout game">
+      <div class="hud" aria-live="polite">
+        <div class="stat"><span class="stat-label">Score</span><span class="stat-value" id="score">0000</span></div>
+        <div class="stat"><span class="stat-label">Level</span><span class="stat-value" id="level">01</span></div>
+        <div class="stat"><span class="stat-label">Lives</span><span class="stat-value" id="lives">● ● ●</span></div>
+      </div>
+      <div class="stage">
+        <canvas id="game" width="900" height="600" aria-label="Breakout playfield. Use the left and right arrow keys or move your pointer to control the paddle."></canvas>
+      </div>
+      <div class="toolbar">
+        <div class="button-group">
+          <button class="button primary" id="start" type="button">Start game</button>
+          <button class="button" id="ai" type="button" aria-pressed="false">AI pilot: off</button>
+          <button class="button" id="reset" type="button">Reset</button>
+        </div>
+        <div class="ai-note"><span class="pulse" aria-hidden="true"></span><span id="ai-status">AI model ready · learning saves in this browser</span></div>
+      </div>
+    </section>
+
+    <div class="touch-controls" aria-label="Touch paddle controls">
+      <button class="button" id="left" type="button" aria-label="Move paddle left">←</button>
+      <button class="button" id="right" type="button" aria-label="Move paddle right">→</button>
+    </div>
+
+    <p class="instructions">
+      <span><strong>Move</strong> <span class="key">←</span> <span class="key">→</span> / <span class="key">A</span> <span class="key">D</span> / pointer</span>
+      <span><strong>Pause</strong> <span class="key">Space</span></span>
+      <span><strong>AI pilot</strong> learns to return the ball with Q-learning</span>
+    </p>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = document.getElementById("score");
+      const levelEl = document.getElementById("level");
+      const livesEl = document.getElementById("lives");
+      const startButton = document.getElementById("start");
+      const aiButton = document.getElementById("ai");
+      const resetButton = document.getElementById("reset");
+      const aiStatus = document.getElementById("ai-status");
+      const leftButton = document.getElementById("left");
+      const rightButton = document.getElementById("right");
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const PADDLE_WIDTH = 112;
+      const PADDLE_HEIGHT = 13;
+      const BALL_RADIUS = 8;
+      const BRICK_COLUMNS = 10;
+      const BRICK_ROWS = 5;
+      const BRICK_WIDTH = 76;
+      const BRICK_HEIGHT = 22;
+      const BRICK_GAP = 8;
+      const BRICK_TOP = 74;
+      const BRICK_LEFT = (WIDTH - BRICK_COLUMNS * (BRICK_WIDTH + BRICK_GAP) + BRICK_GAP) / 2;
+      const COLORS = ["#ff6685", "#ff9a63", "#ffd166", "#59dfbb", "#68b9ff"];
+      const STORAGE_KEY = "breakout-q-learning-v1";
+      const ACTIONS = [-1, 0, 1];
+      const keys = new Set();
+
+      let score = 0;
+      let lives = 3;
+      let level = 1;
+      let bricks = [];
+      let particles = [];
+      let running = false;
+      let paused = false;
+      let finished = false;
+      let aiEnabled = false;
+      let pointerX = null;
+      let touchDirection = 0;
+      let decisionTimer = 0;
+      let previousDecision = null;
+      let pendingFeedback = 0;
+      let lastTime = 0;
+      let animationId = 0;
+      let paddle = { x: (WIDTH - PADDLE_WIDTH) / 2, y: HEIGHT - 43, width: PADDLE_WIDTH, height: PADDLE_HEIGHT };
+      let ball = { x: WIDTH / 2, y: HEIGHT - 68, vx: 235, vy: -300, speed: 380 };
+
+      const model = loadModel();
+
+      function loadModel() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+          return {
+            q: saved.q && typeof saved.q === "object" ? saved.q : {},
+            steps: Number.isFinite(saved.steps) ? saved.steps : 0,
+            returns: Number.isFinite(saved.returns) ? saved.returns : 0
+          };
+        } catch (error) {
+          console.warn("Could not load the saved AI model; starting with a fresh model.", error);
+          return { q: {}, steps: 0, returns: 0 };
+        }
+      }
+
+      function saveModel() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(model));
+        } catch (error) {
+          aiStatus.textContent = "AI is learning, but this browser could not save its model";
+          console.warn("Could not save the AI model.", error);
+        }
+      }
+
+      function createBricks() {
+        bricks = [];
+        for (let row = 0; row < BRICK_ROWS; row++) {
+          for (let column = 0; column < BRICK_COLUMNS; column++) {
+            bricks.push({
+              x: BRICK_LEFT + column * (BRICK_WIDTH + BRICK_GAP),
+              y: BRICK_TOP + row * (BRICK_HEIGHT + BRICK_GAP),
+              width: BRICK_WIDTH,
+              height: BRICK_HEIGHT,
+              color: COLORS[row],
+              alive: true
+            });
+          }
+        }
+      }
+
+      function updateHud() {
+        scoreEl.textContent = String(score).padStart(4, "0");
+        levelEl.textContent = String(level).padStart(2, "0");
+        livesEl.textContent = lives > 0 ? `${"● ".repeat(lives).trim()}${" ○".repeat(3 - lives)}` : "○ ○ ○";
+      }
+
+      function resetBall() {
+        paddle.x = (WIDTH - PADDLE_WIDTH) / 2;
+        ball = {
+          x: WIDTH / 2,
+          y: HEIGHT - 68,
+          vx: (Math.random() < .5 ? -1 : 1) * 235,
+          vy: -300,
+          speed: Math.min(430 + (level - 1) * 24, 560)
+        };
+        previousDecision = null;
+        pendingFeedback = 0;
+        decisionTimer = 0;
+      }
+
+      function finishEpisode(reward) {
+        if (previousDecision) {
+          const values = qValues(previousDecision.state);
+          const terminalReward = reward + pendingFeedback;
+          const oldValue = values[previousDecision.action];
+          values[previousDecision.action] = oldValue + .16 * (terminalReward - oldValue);
+          model.returns += terminalReward;
+          model.steps++;
+        }
+        previousDecision = null;
+        pendingFeedback = 0;
+        saveModel();
+      }
+
+      function resetGame() {
+        score = 0;
+        lives = 3;
+        level = 1;
+        finished = false;
+        paused = false;
+        running = false;
+        createBricks();
+        particles = [];
+        resetBall();
+        updateHud();
+        startButton.textContent = "Start game";
+        draw();
+      }
+
+      function startGame() {
+        if (finished) resetGame();
+        running = true;
+        paused = false;
+        lastTime = performance.now();
+        startButton.textContent = "Pause";
+        if (!animationId) animationId = requestAnimationFrame(loop);
+      }
+
+      function togglePause() {
+        if (finished) return;
+        if (!running) {
+          startGame();
+          return;
+        }
+        paused = !paused;
+        startButton.textContent = paused ? "Resume" : "Pause";
+        if (!paused) {
+          lastTime = performance.now();
+          if (!animationId) animationId = requestAnimationFrame(loop);
+        } else {
+          draw();
+        }
+      }
+
+      function setAi(enabled) {
+        aiEnabled = enabled;
+        if (!enabled) saveModel();
+        aiButton.classList.toggle("active", enabled);
+        aiButton.setAttribute("aria-pressed", String(enabled));
+        aiButton.textContent = `AI pilot: ${enabled ? "on" : "off"}`;
+        aiStatus.textContent = enabled
+          ? `AI pilot active · ${model.steps.toLocaleString()} learning steps saved`
+          : "AI model ready · learning saves in this browser";
+        previousDecision = null;
+        if (enabled && !running) startGame();
+      }
+
+      function getLandingX() {
+        if (ball.vy >= 0) {
+          const timeToPaddle = Math.max(0, (paddle.y - ball.y - BALL_RADIUS) / ball.vy);
+          const rawX = ball.x + ball.vx * timeToPaddle;
+          const span = WIDTH - BALL_RADIUS * 2;
+          const period = span * 2;
+          const folded = ((rawX - BALL_RADIUS) % period + period) % period;
+          return BALL_RADIUS + (folded <= span ? folded : period - folded);
+        }
+        return ball.x;
+      }
+
+      function getState() {
+        const landingBin = Math.min(9, Math.floor(getLandingX() / WIDTH * 10));
+        const paddleBin = Math.min(7, Math.floor((paddle.x + paddle.width / 2) / WIDTH * 8));
+        const direction = ball.vy >= 0 ? 1 : 0;
+        return `${landingBin}:${paddleBin}:${direction}`;
+      }
+
+      function qValues(state) {
+        if (!model.q[state]) model.q[state] = [0, 0, 0];
+        return model.q[state];
+      }
+
+      function chooseAction(state) {
+        const values = qValues(state);
+        const epsilon = Math.max(.06, .28 - model.steps / 16000);
+        if (Math.random() < epsilon) return Math.floor(Math.random() * ACTIONS.length);
+        const best = Math.max(...values);
+        const options = values.map((value, index) => value === best ? index : -1).filter(index => index >= 0);
+        return options[Math.floor(Math.random() * options.length)];
+      }
+
+      function learn(nextState) {
+        if (!previousDecision) return;
+        const values = qValues(previousDecision.state);
+        const nextValues = qValues(nextState);
+        const reward = pendingFeedback + .035 * (previousDecision.distance - Math.abs(getLandingX() - (paddle.x + paddle.width / 2)));
+        const oldValue = values[previousDecision.action];
+        values[previousDecision.action] = oldValue + .16 * (reward + .91 * Math.max(...nextValues) - oldValue);
+        model.returns += reward;
+        model.steps++;
+        pendingFeedback = 0;
+      }
+
+      function movePaddleAI(dt) {
+        decisionTimer -= dt;
+        if (decisionTimer <= 0) {
+          const state = getState();
+          learn(state);
+          const action = chooseAction(state);
+          const distance = Math.abs(getLandingX() - (paddle.x + paddle.width / 2));
+          previousDecision = { state, action, distance };
+          decisionTimer = .12;
+          if (model.steps % 100 === 0) saveModel();
+          aiStatus.textContent = `AI pilot active · ${model.steps.toLocaleString()} learning steps saved`;
+        }
+        const action = previousDecision ? ACTIONS[previousDecision.action] : 0;
+        paddle.x += action * 470 * dt;
+      }
+
+      function movePaddlePlayer(dt) {
+        const direction = (keys.has("ArrowRight") || keys.has("d") || keys.has("D") ? 1 : 0)
+          - (keys.has("ArrowLeft") || keys.has("a") || keys.has("A") ? 1 : 0);
+        if (pointerX !== null) {
+          const target = pointerX - paddle.width / 2;
+          const maxMove = 650 * dt;
+          paddle.x += Math.max(-maxMove, Math.min(maxMove, target - paddle.x));
+        } else {
+          paddle.x += (direction || touchDirection) * 560 * dt;
+        }
+      }
+
+      function addBurst(x, y, color) {
+        for (let i = 0; i < 8; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 45 + Math.random() * 150;
+          particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: .36 + Math.random() * .28, maxLife: .64, color });
+        }
+      }
+
+      function hitPaddle() {
+        ball.y = paddle.y - BALL_RADIUS;
+        const hit = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+        const angle = hit * Math.PI * .36;
+        ball.speed = Math.min(ball.speed + 8, 590);
+        ball.vx = Math.sin(angle) * ball.speed;
+        ball.vy = -Math.cos(angle) * ball.speed;
+        pendingFeedback += 1.2;
+        addBurst(ball.x, paddle.y, "#62e7f5");
+      }
+
+      function update(dt) {
+        if (aiEnabled) movePaddleAI(dt);
+        else movePaddlePlayer(dt);
+        paddle.x = Math.max(12, Math.min(WIDTH - paddle.width - 12, paddle.x));
+
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+
+        if (ball.x - BALL_RADIUS < 0) {
+          ball.x = BALL_RADIUS;
+          ball.vx = Math.abs(ball.vx);
+        } else if (ball.x + BALL_RADIUS > WIDTH) {
+          ball.x = WIDTH - BALL_RADIUS;
+          ball.vx = -Math.abs(ball.vx);
+        }
+        if (ball.y - BALL_RADIUS < 0) {
+          ball.y = BALL_RADIUS;
+          ball.vy = Math.abs(ball.vy);
+        }
+
+        if (ball.vy > 0 && ball.y + BALL_RADIUS >= paddle.y
+          && ball.y - BALL_RADIUS <= paddle.y + paddle.height
+          && ball.x >= paddle.x - BALL_RADIUS
+          && ball.x <= paddle.x + paddle.width + BALL_RADIUS) {
+          hitPaddle();
+        } else if (ball.y - BALL_RADIUS > HEIGHT) {
+          finishEpisode(-2);
+          lives--;
+          updateHud();
+          if (lives <= 0) {
+            finished = true;
+            running = false;
+            startButton.textContent = "Play again";
+            saveModel();
+          } else {
+            resetBall();
+          }
+        }
+
+        for (const brick of bricks) {
+          if (!brick.alive) continue;
+          const closestX = Math.max(brick.x, Math.min(ball.x, brick.x + brick.width));
+          const closestY = Math.max(brick.y, Math.min(ball.y, brick.y + brick.height));
+          const dx = ball.x - closestX;
+          const dy = ball.y - closestY;
+          if (dx * dx + dy * dy <= BALL_RADIUS * BALL_RADIUS) {
+            brick.alive = false;
+            score += 10 * (BRICK_ROWS - Math.floor((brick.y - BRICK_TOP) / (BRICK_HEIGHT + BRICK_GAP)));
+            pendingFeedback += .08;
+            if (Math.abs(dx) > Math.abs(dy)) ball.vx *= -1;
+            else ball.vy *= -1;
+            addBurst(closestX, closestY, brick.color);
+            updateHud();
+            break;
+          }
+        }
+
+        if (bricks.every(brick => !brick.alive)) {
+          finishEpisode(.5);
+          level++;
+          createBricks();
+          resetBall();
+          updateHud();
+        }
+
+        for (const particle of particles) {
+          particle.x += particle.vx * dt;
+          particle.y += particle.vy * dt;
+          particle.life -= dt;
+        }
+        particles = particles.filter(particle => particle.life > 0);
+      }
+
+      function roundRect(x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, radius);
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(130, 154, 220, .045)";
+        ctx.lineWidth = 1;
+        for (let x = 30; x < WIDTH; x += 30) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, HEIGHT);
+          ctx.stroke();
+        }
+        for (let y = 30; y < HEIGHT; y += 30) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(WIDTH, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        for (const brick of bricks) {
+          if (!brick.alive) continue;
+          ctx.save();
+          ctx.shadowColor = brick.color;
+          ctx.shadowBlur = 12;
+          roundRect(brick.x, brick.y, brick.width, brick.height, 6);
+          ctx.fillStyle = brick.color;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          roundRect(brick.x + 2, brick.y + 2, brick.width - 4, 5, 3);
+          ctx.fillStyle = "rgba(255,255,255,.24)";
+          ctx.fill();
+          ctx.restore();
+        }
+
+        if (aiEnabled && ball.vy > 0) {
+          ctx.save();
+          ctx.setLineDash([5, 8]);
+          ctx.strokeStyle = "rgba(161, 139, 255, .42)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(getLandingX(), paddle.y);
+          ctx.lineTo(getLandingX(), HEIGHT);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.shadowColor = aiEnabled ? "#a18bff" : "#62e7f5";
+        ctx.shadowBlur = 20;
+        roundRect(paddle.x, paddle.y, paddle.width, paddle.height, 7);
+        const paddleGradient = ctx.createLinearGradient(paddle.x, 0, paddle.x + paddle.width, 0);
+        paddleGradient.addColorStop(0, aiEnabled ? "#7867da" : "#37bed8");
+        paddleGradient.addColorStop(.5, aiEnabled ? "#c0a9ff" : "#b4f8ff");
+        paddleGradient.addColorStop(1, aiEnabled ? "#7867da" : "#37bed8");
+        ctx.fillStyle = paddleGradient;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.shadowColor = "#f3fbff";
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = "#f4fbff";
+        ctx.fill();
+        ctx.restore();
+
+        for (const particle of particles) {
+          ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+          ctx.fillStyle = particle.color;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        if (!running || paused || finished) drawOverlay();
+      }
+
+      function drawOverlay() {
+        ctx.fillStyle = "rgba(6, 10, 21, .57)";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#f2f5ff";
+        ctx.font = "800 34px system-ui, sans-serif";
+        const title = finished ? "GAME OVER" : paused ? "PAUSED" : "READY?";
+        ctx.fillText(title, WIDTH / 2, HEIGHT / 2 - 12);
+        ctx.fillStyle = "#aab5d0";
+        ctx.font = "500 15px system-ui, sans-serif";
+        const message = finished ? "Your AI model keeps what it learned." : paused ? "Press space or Resume when you're ready." : "Press Start game or Space to break in.";
+        ctx.fillText(message, WIDTH / 2, HEIGHT / 2 + 22);
+      }
+
+      function loop(now) {
+        animationId = 0;
+        if (!running || paused) {
+          draw();
+          return;
+        }
+        const dt = Math.min((now - lastTime) / 1000, 1 / 30);
+        lastTime = now;
+        update(dt);
+        draw();
+        if (running && !paused) animationId = requestAnimationFrame(loop);
+      }
+
+      canvas.addEventListener("pointermove", event => {
+        const bounds = canvas.getBoundingClientRect();
+        pointerX = (event.clientX - bounds.left) * WIDTH / bounds.width;
+      });
+      canvas.addEventListener("pointerleave", () => { pointerX = null; });
+      canvas.addEventListener("pointerdown", () => {
+        if (!running) startGame();
+      });
+
+      window.addEventListener("keydown", event => {
+        if (["ArrowLeft", "ArrowRight", " "].includes(event.key)) event.preventDefault();
+        if (["ArrowLeft", "ArrowRight", "a", "A", "d", "D"].includes(event.key)) pointerX = null;
+        keys.add(event.key);
+        if (event.key === " " && !event.repeat) togglePause();
+      });
+      window.addEventListener("keyup", event => keys.delete(event.key));
+      window.addEventListener("blur", () => keys.clear());
+
+      function bindTouchButton(button, direction) {
+        button.addEventListener("pointerdown", event => {
+          event.preventDefault();
+          pointerX = null;
+          touchDirection = direction;
+          button.setPointerCapture(event.pointerId);
+        });
+        const release = () => { if (touchDirection === direction) touchDirection = 0; };
+        button.addEventListener("pointerup", release);
+        button.addEventListener("pointercancel", release);
+        button.addEventListener("lostpointercapture", release);
+      }
+      bindTouchButton(leftButton, -1);
+      bindTouchButton(rightButton, 1);
+
+      startButton.addEventListener("click", () => {
+        if (running && !paused) togglePause();
+        else startGame();
+      });
+      aiButton.addEventListener("click", () => setAi(!aiEnabled));
+      resetButton.addEventListener("click", resetGame);
+
+      createBricks();
+      updateHud();
+      draw();
+    })();
+  </script>
+</body>
+</html>
